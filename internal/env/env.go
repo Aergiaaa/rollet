@@ -7,7 +7,7 @@ import (
 )
 
 func GetEnvInt(key string, defaultValue int) int {
-	envStr, ok := os.LookupEnv("PORT")
+	envStr, ok := os.LookupEnv(key)
 	if !ok {
 		log.Printf("Environment variable %s not set, using default value: %d", key, defaultValue)
 		return defaultValue
@@ -24,7 +24,7 @@ func GetEnvInt(key string, defaultValue int) int {
 }
 
 func GetEnvString(key, defaultValue string) string {
-	env, ok := os.LookupEnv("JWT_SECRET")
+	env, ok := os.LookupEnv(key)
 	if !ok {
 		log.Printf("Environment variable %s not set, using default value: %s", key, defaultValue)
 		return defaultValue
