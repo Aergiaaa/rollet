@@ -9,6 +9,7 @@ import (
 )
 
 func RunMigrations(db *sql.DB) error {
+
 	config := &postgres.Config{}
 	driver, err := postgres.WithInstance(db, config)
 	if err != nil {

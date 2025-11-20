@@ -1,2 +1,2 @@
-release: ./bin/rollet migrate
-web: ./bin/rollet
+release: go run ./cmd migrate
+web: go run ./cmd
