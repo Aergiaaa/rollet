@@ -26,13 +26,19 @@ func (app *app) routes() http.Handler {
 
 	v1 := g.Group("/v1")
 	{
-		g.POST("/random", app.createRandomize)
+		v1.POST("/random", app.createRandomize)
+
+		v1.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"status": "ok",
+			})
+		})
 	}
 
 	authGroup := v1.Group("/")
 	authGroup.Use(app.AuthMiddleware())
 	{
-
+		authGroup.POST("/random-save", app.createRandomize)
 	}
 
 	{
