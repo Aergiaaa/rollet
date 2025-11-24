@@ -5,4 +5,9 @@ migrate-down:
 
 build:
 	@go build -o bin/rollet ./cmd
-	
+
+test:
+	@go test -v ./
+
+benchmark:
+	@go test -bench=. ./

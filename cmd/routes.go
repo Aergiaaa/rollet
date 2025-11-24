@@ -28,8 +28,8 @@ func (app *app) routes() http.Handler {
 	{
 		v1.POST("/random", app.createRandomize)
 
-		// v1.POST("/auth/register", app.register) // Example register route
-		// v1.POST("/auth/login", app.login) // Example login route
+		v1.POST("/auth/register", app.register)
+		v1.POST("/auth/login", app.login)
 
 		v1.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{

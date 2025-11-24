@@ -32,9 +32,9 @@ func (um *UserModel) Get(id int) (*User, error) {
 	return um.getUser(query, id)
 }
 
-func (um *UserModel) GetByGoogle(email string) (*User, error) {
-	query := `SELECT id, google_id, name, password FROM users WHERE email = $1`
-	return um.getUser(query, email)
+func (um *UserModel) GetByGoogleID(googleID string) (*User, error) {
+	query := `SELECT id, google_id, name, password FROM users WHERE google_id = $1`
+	return um.getUser(query, googleID)
 }
 
 func (um *UserModel) getUser(query string, args ...any) (*User, error) {
