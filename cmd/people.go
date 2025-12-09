@@ -35,6 +35,8 @@ type RandomizeResponse struct {
 }
 
 func (app *app) createRandomize(c *gin.Context) {
+
+	// Bind and validate input
 	var req RandomizeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -43,6 +45,7 @@ func (app *app) createRandomize(c *gin.Context) {
 		return
 	}
 
+	// Convert input to People structs
 	people := make([]*database.People, len(req.People))
 	for i, p := range req.People {
 		people[i] = &database.People{
@@ -52,11 +55,13 @@ func (app *app) createRandomize(c *gin.Context) {
 		}
 	}
 
+	// Group by role
 	roleMap := make(map[string][]*database.People)
 	for _, person := range people {
 		roleMap[person.Role] = append(roleMap[person.Role], person)
 	}
 
+	// Shuffle and assign to teams
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	allPeople := make([]*database.People, 0, len(people))
 
@@ -75,6 +80,7 @@ func (app *app) createRandomize(c *gin.Context) {
 		}
 	}
 
+	// Save to database if authenticated
 	user, exists := c.Get("user")
 	isAuthenticated := exists && user != nil
 	if isAuthenticated {
@@ -88,11 +94,13 @@ func (app *app) createRandomize(c *gin.Context) {
 		}
 	}
 
+	// Group by team for response
 	teamMap := make(map[int][]*database.People)
 	for _, person := range allPeople {
 		teamMap[person.Team] = append(teamMap[person.Team], person)
 	}
 
+	// Prepare teams for response
 	teams := make([]TeamGroup, 0, len(teamMap))
 	for teamNum := 1; teamNum <= req.TeamCount; teamNum++ {
 		if peopleInTeam, ok := teamMap[teamNum]; ok {
@@ -110,7 +118,9 @@ func (app *app) createRandomize(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-func (app *app) getSavedRandom(c *gin.Context) {
+func (app *app) getHistory(c *gin.Context) {
+
+	// Check authentication
 	user, exists := c.Get("user")
 	if !exists || user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -119,6 +129,7 @@ func (app *app) getSavedRandom(c *gin.Context) {
 		return
 	}
 
+	// Retrieve saved data
 	userObj := user.(*database.User)
 	people, err := app.models.People.GetAllbyUserId(userObj.Id)
 	if err != nil {

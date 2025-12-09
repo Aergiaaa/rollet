@@ -29,7 +29,9 @@ func (app *app) routes() http.Handler {
 		v1.POST("/random", app.createRandomize)
 
 		v1.POST("/auth/register", app.register)
-		v1.POST("/auth/login", app.login)
+		v1.POST("/auth/login/default", app.loginDefault)
+		// TODO: Implement Google OAuth login
+		// v1.POST("/auth/login/google", app.loginGoogle)
 
 		v1.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
@@ -41,7 +43,8 @@ func (app *app) routes() http.Handler {
 	authGroup := v1.Group("/")
 	authGroup.Use(app.AuthMiddleware())
 	{
-		authGroup.POST("/random-save", app.createRandomize)
+		authGroup.POST("/user/random", app.createRandomize)
+		authGroup.GET("/user/history", app.getHistory)
 	}
 
 	{

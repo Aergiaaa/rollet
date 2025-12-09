@@ -9,7 +9,10 @@ import (
 )
 
 func (app *app) AuthMiddleware() gin.HandlerFunc {
+	// Middleware to authenticate requests using JWT tokens
 	return func(c *gin.Context) {
+
+		// Extract the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
@@ -17,6 +20,7 @@ func (app *app) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Parse and validate the JWT token
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenStr == authHeader {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Bearer token is required"})
@@ -24,6 +28,7 @@ func (app *app) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Parse and validate the JWT token
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
@@ -37,6 +42,7 @@ func (app *app) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Extract user information from token claims
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
@@ -44,6 +50,7 @@ func (app *app) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Extract user ID from token claims
 		userId := int(claims["userId"].(float64))
 		user, err := app.models.Users.Get(userId)
 		if err != nil {

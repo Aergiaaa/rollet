@@ -7,6 +7,13 @@ import (
 	"context"
 )
 
+type UserStore interface {
+	Insert(u *User) error
+	Get(id int) (*User, error)
+	GetByGoogleID(googleID string) (*User, error)
+	GetByName(name string) (*User, error)
+}
+
 type UserModel struct {
 	DB *sql.DB
 }
@@ -17,6 +24,8 @@ type User struct {
 	Name     string `json:"name"`
 	Password string `json:"-"`
 }
+
+var _ UserStore = (*UserModel)(nil)
 
 func (um *UserModel) Insert(u *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -35,6 +44,11 @@ func (um *UserModel) Get(id int) (*User, error) {
 func (um *UserModel) GetByGoogleID(googleID string) (*User, error) {
 	query := `SELECT id, google_id, name, password FROM users WHERE google_id = $1`
 	return um.getUser(query, googleID)
+}
+
+func (um *UserModel) GetByName(name string) (*User, error) {
+	query := `SELECT id, google_id, name, password FROM users WHERE name = $1`
+	return um.getUser(query, name)
 }
 
 func (um *UserModel) getUser(query string, args ...any) (*User, error) {

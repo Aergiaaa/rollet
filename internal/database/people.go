@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+type PeopleStore interface {
+	GetAllbyUserId(userId int) ([]*People, error)
+	Save(userId int, people []*People) error
+}
+
 type PeopleModel struct {
 	DB *sql.DB
 }
@@ -19,10 +24,11 @@ type People struct {
 }
 
 type PeopleData struct {
-	Id     int `json:"id"`
 	User   User
-	People []People
+	People []*People
 }
+
+var _ PeopleStore = (*PeopleModel)(nil)
 
 func (pm *PeopleModel) GetAllbyUserId(userId int) ([]*People, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
