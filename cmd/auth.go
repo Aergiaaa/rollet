@@ -62,6 +62,7 @@ func (app *app) register(c *gin.Context) {
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
 	}
 
 	// Create user object
@@ -75,6 +76,7 @@ func (app *app) register(c *gin.Context) {
 	err = app.models.Users.Insert(&user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user"})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
