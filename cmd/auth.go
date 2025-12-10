@@ -220,6 +220,6 @@ func (app *app) googleAuth(c *gin.Context) {
 	})
 }
 
-func isUniqueName(name string) bool {
-
-}
+// func isUniqueName(name string) bool {
+//
+// }
