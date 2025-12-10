@@ -14,9 +14,13 @@ type PersonInput struct {
 	Role string `json:"role" binding:"required"`
 }
 
+type RandomizeRequestOpts struct {
+}
+
 type RandomizeRequest struct {
-	People    []PersonInput `json:"people" binding:"required,min=1"`
-	TeamCount int           `json:"team_count" binding:"required,min=1"`
+	People    []PersonInput        `json:"people" binding:"required,min=1"`
+	TeamCount int                  `json:"team_count" binding:"required,min=1"`
+	Opts      RandomizeRequestOpts `json:"options"`
 }
 
 type RoleGroup struct {
@@ -116,6 +120,16 @@ func (app *app) createRandomize(c *gin.Context) {
 		Total: len(allPeople),
 	}
 	c.JSON(http.StatusOK, res)
+}
+
+func (app *app) createCustomRandomize(c *gin.Context) {
+	var req RandomizeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
 }
 
 func (app *app) getHistory(c *gin.Context) {

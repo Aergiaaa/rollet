@@ -26,12 +26,13 @@ func (app *app) routes() http.Handler {
 
 	v1 := g.Group("/v1")
 	{
-		v1.POST("/random", app.createRandomize)
+		v1.POST("/random/default", app.createRandomize)
+		v1.POST("/random/custom", app.createCustomRandomize)
 
 		v1.POST("/auth/register", app.register)
 		v1.POST("/auth/login/default", app.loginDefault)
 		// TODO: Implement Google OAuth login
-		v1.POST("/auth/login/google", app.loginGoogle)
+		v1.POST("/auth/google", app.googleAuth)
 
 		v1.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{

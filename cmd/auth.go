@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Aergiaaa/rollet/internal/database"
-	"github.com/Aergiaaa/rollet/internal/env"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
@@ -16,13 +15,13 @@ import (
 )
 
 type registerRequest struct {
-	GoogleID string `json:"google_id"`
+	Email    string `json:"email" binding:"required,email"`
 	Name     string `json:"name" binding:"required,min=3"`
 	Password string `json:"password" binding:"min=8"`
 }
 
 type loginRequest struct {
-	GoogleID string `json:"google_id"`
+	Email    string `json:"email" binding:"required,email"`
 	Name     string `json:"name" binding:"required,min=3"`
 	Password string `json:"password" binding:"min=8"`
 }
@@ -32,15 +31,23 @@ type loginResponse struct {
 	UserID int    `json:"user_id"`
 }
 
+type googleAuthRequest struct {
+	ClientID     string `json:"client_id" binding:"required"`
+	ClientSecret string `json:"client_secret" binding:"required"`
+	RedirectURL  string `json:"redirect_url" binding:"required"`
+	Code         string `json:"code" binding:"required"`
+	State        string `json:"state" binding:"required"`
+}
+
 type googleProfile struct {
 	ID            string `json:"id"`
 	Email         string `json:"email"`
 	VerifiedEmail bool   `json:"verified_email"`
 	Name          string `json:"name"`
-	GivenName     string `json:"given_name"`
-	FamilyName    string `json:"family_name"`
-	Picture       string `json:"picture"`
-	Locale        string `json:"locale"`
+	// GivenName     string `json:"given_name"`
+	// FamilyName    string `json:"family_name"`
+	// Picture       string `json:"picture"`
+	// Locale        string `json:"locale"`
 }
 
 func (app *app) register(c *gin.Context) {
@@ -59,7 +66,7 @@ func (app *app) register(c *gin.Context) {
 
 	// Create user object
 	user := database.User{
-		GoogleId: req.GoogleID,
+		Email:    req.Email,
 		Name:     req.Name,
 		Password: string(hashPassword),
 	}
@@ -86,7 +93,7 @@ func (app *app) loginDefault(c *gin.Context) {
 	}
 
 	// Retrieve user by Google ID
-	existingUser, err := app.models.Users.GetByGoogleID(req.GoogleID)
+	existingUser, err := app.models.Users.GetByName(req.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
 		return
@@ -124,21 +131,18 @@ func (app *app) loginDefault(c *gin.Context) {
 	})
 }
 
-func (app *app) loginGoogle(c *gin.Context) {
-	// pick google env
-	clientID := env.GetEnvString("GOOGLE_OAUTH_CLIENT_ID", "")
-	clientSecret := env.GetEnvString("GOOGLE_OAUTH_CLIENT_SECRET", "")
-	redirectURL := env.GetEnvString("GOOGLE_OAUTH_REDIRECT_URL", "")
-
-	if clientID == "" || clientSecret == "" || redirectURL == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Google OAuth environment variables not set"})
+func (app *app) googleAuth(c *gin.Context) {
+	// load oauth
+	var req googleAuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	cfg := &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURL,
+		ClientID:     req.ClientID,
+		ClientSecret: req.ClientSecret,
+		RedirectURL:  req.RedirectURL,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/userinfo.profile",
 			"https://www.googleapis.com/auth/userinfo.email",
@@ -146,19 +150,18 @@ func (app *app) loginGoogle(c *gin.Context) {
 		Endpoint: google.Endpoint,
 	}
 
-	code := c.Query("code")
-	state := c.Query("state")
-
-	if code == "" {
-		authURL := cfg.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	if req.Code == "" {
+		authURL := cfg.AuthCodeURL(req.State, oauth2.AccessTypeOffline)
 		c.Redirect(http.StatusFound, authURL)
+		//? or
+		//? c.JSON(http.StatusOK, gin.H{"auth_url": authURL})
 		return
 	}
 
 	ctx := context.Background()
-	googleToken, err := cfg.Exchange(ctx, code)
+	googleToken, err := cfg.Exchange(ctx, req.Code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to exchange token"})
 		return
 	}
 
@@ -176,7 +179,7 @@ func (app *app) loginGoogle(c *gin.Context) {
 		return
 	}
 
-	user, err := app.models.Users.GetByGoogleID(p.ID)
+	user, err := app.models.Users.GetByEmail(p.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
 		return
@@ -184,12 +187,12 @@ func (app *app) loginGoogle(c *gin.Context) {
 
 	if user == nil {
 		newUser := &database.User{
-			GoogleId: p.ID,
+			Email:    p.Email,
 			Name:     p.Name,
 			Password: "",
 		}
-		err = app.models.Users.Insert(newUser)
-		if err != nil {
+
+		if err = app.models.Users.Insert(newUser); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 			return
 		}

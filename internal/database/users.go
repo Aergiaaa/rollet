@@ -10,7 +10,7 @@ import (
 type UserStore interface {
 	Insert(u *User) error
 	Get(id int) (*User, error)
-	GetByGoogleID(googleID string) (*User, error)
+	GetByEmail(Email string) (*User, error)
 	GetByName(name string) (*User, error)
 }
 
@@ -20,7 +20,7 @@ type UserModel struct {
 
 type User struct {
 	Id       int    `json:"id"`
-	GoogleId string `json:"google_id"`
+	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Password string `json:"-"`
 }
@@ -31,23 +31,23 @@ func (um *UserModel) Insert(u *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `INSERT INTO users (google_id, name, password) VALUES ($1, $2, $3) RETURNING id`
+	query := `INSERT INTO users (email, name, password) VALUES ($1, $2, $3) RETURNING id`
 
-	return um.DB.QueryRowContext(ctx, query, u.GoogleId, u.Name, u.Password).Scan(&u.Id)
+	return um.DB.QueryRowContext(ctx, query, u.Email, u.Name, u.Password).Scan(&u.Id)
 }
 
 func (um *UserModel) Get(id int) (*User, error) {
-	query := `SELECT id, google_id, name, password FROM users WHERE id = $1`
+	query := `SELECT id, email, name, password FROM users WHERE id = $1`
 	return um.getUser(query, id)
 }
 
-func (um *UserModel) GetByGoogleID(googleID string) (*User, error) {
-	query := `SELECT id, google_id, name, password FROM users WHERE google_id = $1`
-	return um.getUser(query, googleID)
+func (um *UserModel) GetByEmail(email string) (*User, error) {
+	query := `SELECT id, email, name, password FROM users WHERE email = $1`
+	return um.getUser(query, email)
 }
 
 func (um *UserModel) GetByName(name string) (*User, error) {
-	query := `SELECT id, google_id, name, password FROM users WHERE name = $1`
+	query := `SELECT id, email, name, password FROM users WHERE name = $1`
 	return um.getUser(query, name)
 }
 
@@ -57,7 +57,7 @@ func (um *UserModel) getUser(query string, args ...any) (*User, error) {
 
 	var u User
 	err := um.DB.QueryRowContext(ctx, query, args...).
-		Scan(&u.Id, &u.GoogleId, &u.Name, &u.Password)
+		Scan(&u.Id, &u.Email, &u.Name, &u.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
