@@ -53,6 +53,7 @@ func main() {
 				log.Fatalf("Migration Failed: %v", err)
 			}
 			log.Println("Migrations completed successfully")
+			return
 		}
 	}
 
