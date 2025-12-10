@@ -92,7 +92,7 @@ func (app *app) loginDefault(c *gin.Context) {
 		return
 	}
 
-	// Retrieve user by Google ID
+	// Retrieve user by name
 	existingUser, err := app.models.Users.GetByName(req.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
@@ -139,6 +139,8 @@ func (app *app) googleAuth(c *gin.Context) {
 		return
 	}
 
+	authCode := req.Code
+
 	cfg := &oauth2.Config{
 		ClientID:     req.ClientID,
 		ClientSecret: req.ClientSecret,
@@ -150,7 +152,7 @@ func (app *app) googleAuth(c *gin.Context) {
 		Endpoint: google.Endpoint,
 	}
 
-	if req.Code == "" {
+	if authCode == "" {
 		authURL := cfg.AuthCodeURL(req.State, oauth2.AccessTypeOffline)
 		c.Redirect(http.StatusFound, authURL)
 		//? or
@@ -159,7 +161,7 @@ func (app *app) googleAuth(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	googleToken, err := cfg.Exchange(ctx, req.Code)
+	googleToken, err := cfg.Exchange(ctx, authCode)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to exchange token"})
 		return
@@ -188,6 +190,7 @@ func (app *app) googleAuth(c *gin.Context) {
 	if user == nil {
 		newUser := &database.User{
 			Email:    p.Email,
+			GoogleID: p.ID,
 			Name:     p.Name,
 			Password: "",
 		}
@@ -215,4 +218,8 @@ func (app *app) googleAuth(c *gin.Context) {
 		Token:  tokenStr,
 		UserID: user.Id,
 	})
+}
+
+func isUniqueName(name string) bool {
+
 }

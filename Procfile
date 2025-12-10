@@ -1,2 +1,2 @@
-release: go run ./cmd migrate
-web: go run ./cmd
+release: ./bin/cmd migrate
+web: ./bin/cmd

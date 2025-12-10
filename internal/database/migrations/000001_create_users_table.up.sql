@@ -1,5 +1,6 @@
 create table if not exists users (
   id serial primary key,
+  email varchar(255) unique not null,
   google_id varchar(255) unique,
   name varchar(255) not null,
   password varchar(255),
