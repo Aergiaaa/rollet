@@ -28,6 +28,35 @@ func main() {
 		log.Fatalf("error opening database: %v", err)
 =======
 	url := env.GetEnvString("DATABASE_URL", "")
+<<<<<<< HEAD
+=======
+	if url == "" {
+		log.Fatal("DATABASE_URL is not set")
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		db, err := sql.Open("postgres", url)
+		if err != nil {
+			log.Fatalf("Could not connect to database: %v", err)
+		}
+		defer db.Close()
+
+		switch os.Args[2] {
+		case "up":
+			if err = database.MigrationUp(db); err != nil {
+				log.Fatalf("Migration Failed: %v", err)
+			}
+			log.Println("Migrations completed successfully")
+			return
+		case "down":
+			if err = database.MigrationDown(db); err != nil {
+				log.Fatalf("Migration Failed: %v", err)
+			}
+			log.Println("Migrations completed successfully")
+		}
+	}
+
+>>>>>>> 143ce7e (add: flag for make migrating easier)
 	db, err := sql.Open("postgres", url)
 	if err != nil {
 		log.Fatalf("Could not connect to database: %v", err)
