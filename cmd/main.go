@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
 
 	"github.com/Aergiaaa/rollet/internal/database"
 	"github.com/Aergiaaa/rollet/internal/env"
@@ -22,14 +23,12 @@ func main() {
 		log.Println("No .env file found, using environment variables")
 	}
 
-<<<<<<< HEAD
 	db, err := sql.Open("postgres", env.GetEnvString("DATABASE_URL", ""))
 	if err != nil {
 		log.Fatalf("error opening database: %v", err)
-=======
+	}
+
 	url := env.GetEnvString("DATABASE_URL", "")
-<<<<<<< HEAD
-=======
 	if url == "" {
 		log.Fatal("DATABASE_URL is not set")
 	}
@@ -56,22 +55,6 @@ func main() {
 			return
 		}
 	}
-
->>>>>>> 143ce7e (add: flag for make migrating easier)
-	db, err := sql.Open("postgres", url)
-	if err != nil {
-		log.Fatalf("Could not connect to database: %v", err)
-	}
-	defer db.Close()
-
-	if len(os.Args) > 1 && os.Args[1] == "migrate" {
-		if err = database.RunMigrations(db); err != nil {
-			log.Printf("Migration Failed: %v", err)
-		}
-		return
->>>>>>> 7a6b26f (fix: db close too soon)
-	}
-	defer db.Close()
 
 	models := database.NewModels(db)
 	app := &app{
