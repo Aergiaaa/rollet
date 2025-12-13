@@ -27,7 +27,6 @@ func (app *app) routes() http.Handler {
 	v1 := g.Group("/v1")
 	{
 		v1.POST("/random/default", app.createRandomize)
-		v1.POST("/random/custom", app.createCustomRandomize)
 
 		v1.POST("/auth/register", app.register)
 		v1.POST("/auth/login/default", app.loginDefault)
@@ -44,7 +43,7 @@ func (app *app) routes() http.Handler {
 	authGroup := v1.Group("/")
 	authGroup.Use(app.AuthMiddleware())
 	{
-		authGroup.POST("/user/random", app.createRandomize)
+		authGroup.POST("/user/random/custom", app.createCustomRandomize)
 		authGroup.GET("/user/history", app.getHistory)
 	}
 
