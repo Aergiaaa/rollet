@@ -1,0 +1,177 @@
+definitions:
+  database.User:
+    properties:
+      email:
+        type: string
+      google_id:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  main.errorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  main.googleAuthRequest:
+    properties:
+      client_id:
+        type: string
+      client_secret:
+        type: string
+      code:
+        type: string
+      redirect_url:
+        type: string
+      state:
+        type: string
+    required:
+    - client_id
+    - client_secret
+    - code
+    - redirect_url
+    - state
+    type: object
+  main.loginRequest:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 3
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  main.loginResponse:
+    properties:
+      token:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  main.registerRequest:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 3
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  main.registerResponse:
+    properties:
+      message:
+        type: string
+      user:
+        $ref: '#/definitions/database.User'
+    type: object
+info:
+  contact: {}
+paths:
+  /v1/auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges Google OAuth2 code for user info, upserts the user, and
+        returns JWT
+      parameters:
+      - description: OAuth exchange request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.googleAuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.loginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+      summary: Google OAuth login/signup
+      tags:
+      - auth
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Issues JWT after verifying credentials
+      parameters:
+      - description: Login request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.loginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+      summary: Login with email/password
+      tags:
+      - auth
+  /v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email, name, and password
+      parameters:
+      - description: Register Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.registerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+swagger: "2.0"

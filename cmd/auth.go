@@ -14,10 +14,20 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+const (
+	GOOGLE_URI_AUTH_USERINFO_SCOPE_CONFIG = "https://www.googleapis.com/auth/userinfo"
+	GOOGLE_URI_OAUTH2_USERINFO            = "https://www.googleapis.com/oauth2/v2/userinfo"
+)
+
 type registerRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Name     string `json:"name" binding:"required,min=3"`
 	Password string `json:"password" binding:"min=8"`
+}
+
+type registerResponse struct {
+	Message string        `json:"message"`
+	User    database.User `json:"user"`
 }
 
 type loginRequest struct {
@@ -50,18 +60,33 @@ type googleProfile struct {
 	// Locale        string `json:"locale"`
 }
 
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+// register godoc
+// @Summary      Register a new user
+// @Description  Register a new user with email, name, and password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      registerRequest  true  "Register Request"
+// @Success      201   {object}  registerResponse
+// @Failure      400   {object}  errorResponse
+// @Failure      500   {object}  errorResponse
+// @Router       /v1/auth/register [post]
 func (app *app) register(c *gin.Context) {
 	// Bind and validate input
 	var req registerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, errorResponse{err.Error()})
 		return
 	}
 
 	// Hash the password
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		c.JSON(http.StatusInternalServerError, errorResponse{"failed to hash password"})
 		return
 	}
 
@@ -75,42 +100,54 @@ func (app *app) register(c *gin.Context) {
 	// Insert user into database
 	err = app.models.Users.Insert(&user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user"})
+		c.JSON(http.StatusInternalServerError, errorResponse{"failed to register user"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "User registered successfuly",
-		"user":    user,
+	c.JSON(http.StatusCreated, registerResponse{
+		"User registered successfuly",
+		user,
 	})
 }
 
-func (app *app) loginDefault(c *gin.Context) {
+// login godoc
+// @Summary      Login with email/password
+// @Description  Issues JWT after verifying credentials
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      loginRequest  true  "Login request"
+// @Success      200   {object}  loginResponse
+// @Failure      400   {object}  errorResponse
+// @Failure      401   {object}  errorResponse
+// @Failure      500   {object}  errorResponse
+// @Router       /v1/auth/login [post]
+func (app *app) login(c *gin.Context) {
 
 	// Bind and validate input
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, errorResponse{err.Error()})
 		return
 	}
 
 	// Retrieve user by name
 	existingUser, err := app.models.Users.GetByName(req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to retrieve user"})
 		return
 	}
 
 	// Check if user exists
 	if existingUser == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Google ID or password"})
+		c.JSON(http.StatusUnauthorized, errorResponse{"Invalid Google ID or password"})
 		return
 	}
 
 	// Verify password
 	err = bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(req.Password))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Google ID or password"})
+		c.JSON(http.StatusUnauthorized, errorResponse{"Invalid Google ID or password"})
 		return
 	}
 
@@ -123,7 +160,7 @@ func (app *app) loginDefault(c *gin.Context) {
 	// Sign the token with the secret
 	tokenStr, err := token.SignedString([]byte(app.jwtSecret))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to generate token"})
 		return
 	}
 
@@ -133,11 +170,22 @@ func (app *app) loginDefault(c *gin.Context) {
 	})
 }
 
+// google godoc
+// @Summary      Google OAuth login/signup
+// @Description  Exchanges Google OAuth2 code for user info, upserts the user, and returns JWT
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body      googleAuthRequest  true  "OAuth exchange request"
+// @Success      200   {object}  loginResponse
+// @Failure      400   {object}  errorResponse
+// @Failure      500   {object}  errorResponse
+// @Router       /v1/auth/google [post]
 func (app *app) googleAuth(c *gin.Context) {
 	// load oauth
 	var req googleAuthRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, errorResponse{err.Error()})
 		return
 	}
 
@@ -148,57 +196,55 @@ func (app *app) googleAuth(c *gin.Context) {
 		ClientSecret: req.ClientSecret,
 		RedirectURL:  req.RedirectURL,
 		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.profile",
-			"https://www.googleapis.com/auth/userinfo.email",
+			GOOGLE_URI_AUTH_USERINFO_SCOPE_CONFIG + ".profile",
+			GOOGLE_URI_AUTH_USERINFO_SCOPE_CONFIG + ".email",
 		},
 		Endpoint: google.Endpoint,
 	}
 
 	if authCode == "" {
 		authURL := cfg.AuthCodeURL(req.State, oauth2.AccessTypeOffline)
-		c.Redirect(http.StatusFound, authURL)
-		//? or
-		//? c.JSON(http.StatusOK, gin.H{"auth_url": authURL})
+		c.JSON(http.StatusOK, gin.H{"auth_url": authURL})
 		return
 	}
 
 	ctx := context.Background()
 	googleToken, err := cfg.Exchange(ctx, authCode)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to exchange token"})
+		c.JSON(http.StatusBadRequest, errorResponse{"Failed to exchange token"})
 		return
 	}
 
 	client := cfg.Client(ctx, googleToken)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
-	if err != nil || resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+	res, err := client.Get(GOOGLE_URI_OAUTH2_USERINFO)
+	if err != nil || res.StatusCode != http.StatusOK {
+		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to get user info"})
 		return
 	}
-	defer resp.Body.Close()
+	defer res.Body.Close()
 
 	var p googleProfile
-	if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode user info"})
+	if err := json.NewDecoder(res.Body).Decode(&p); err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to decode user info"})
 		return
 	}
 
 	user, err := app.models.Users.GetByEmail(p.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to retrieve user"})
 		return
 	}
 
 	if user == nil {
-		newUser := &database.User{
+		user = &database.User{
 			Email:    p.Email,
 			GoogleID: p.ID,
 			Name:     p.Name,
 			Password: "",
 		}
 
-		if err = app.models.Users.Insert(newUser); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		if err = app.models.Users.Insert(user); err != nil {
+			c.JSON(http.StatusInternalServerError, errorResponse{"Failed to create user"})
 			return
 		}
 	}
@@ -212,7 +258,7 @@ func (app *app) googleAuth(c *gin.Context) {
 	// Sign the token with the secret
 	tokenStr, err := token.SignedString([]byte(app.jwtSecret))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to generate token"})
 		return
 	}
 
