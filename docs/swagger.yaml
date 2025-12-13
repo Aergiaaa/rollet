@@ -95,15 +95,11 @@ definitions:
     properties:
       email:
         type: string
-      name:
-        minLength: 3
-        type: string
       password:
         minLength: 8
         type: string
     required:
     - email
-    - name
     type: object
   main.loginResponse:
     properties:

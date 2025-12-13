@@ -426,16 +426,11 @@ const docTemplate = `{
         "main.loginRequest": {
             "type": "object",
             "required": [
-                "email",
-                "name"
+                "email"
             ],
             "properties": {
                 "email": {
                     "type": "string"
-                },
-                "name": {
-                    "type": "string",
-                    "minLength": 3
                 },
                 "password": {
                     "type": "string",
