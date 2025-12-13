@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -133,6 +135,10 @@ func (app *app) login(c *gin.Context) {
 	// Retrieve user by name
 	existingUser, err := app.models.Users.GetByEmail(req.Email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusUnauthorized, errorResponse{"Invalid Google ID or password"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to retrieve user"})
 		return
 	}
