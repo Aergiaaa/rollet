@@ -69,6 +69,7 @@ func (app *app) createRandomize(c *gin.Context) {
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	allPeople := make([]*database.People, 0, len(people))
 
+	teamIdx := 0
 	for _, peopleList := range roleMap {
 		shuffled := make([]*database.People, len(peopleList))
 		copy(shuffled, peopleList)
@@ -78,9 +79,10 @@ func (app *app) createRandomize(c *gin.Context) {
 		})
 
 		// round-robin assignment to teams
-		for i, person := range shuffled {
-			person.Team = (i % req.TeamCount) + 1
+		for _, person := range shuffled {
+			person.Team = (teamIdx % req.TeamCount) + 1
 			allPeople = append(allPeople, person)
+			teamIdx++
 		}
 	}
 
