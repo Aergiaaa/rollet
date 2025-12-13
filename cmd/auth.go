@@ -32,7 +32,6 @@ type registerResponse struct {
 
 type loginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Name     string `json:"name" binding:"required,min=3"`
 	Password string `json:"password" binding:"min=8"`
 }
 
@@ -132,7 +131,7 @@ func (app *app) login(c *gin.Context) {
 	}
 
 	// Retrieve user by name
-	existingUser, err := app.models.Users.GetByName(req.Name)
+	existingUser, err := app.models.Users.GetByEmail(req.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse{"Failed to retrieve user"})
 		return
