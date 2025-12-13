@@ -1,4 +1,15 @@
 definitions:
+  database.People:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      role:
+        type: string
+      team:
+        type: integer
+    type: object
   database.User:
     properties:
       email:
@@ -9,6 +20,52 @@ definitions:
         type: integer
       name:
         type: string
+    type: object
+  main.PersonInput:
+    properties:
+      name:
+        type: string
+      role:
+        type: string
+    required:
+    - name
+    - role
+    type: object
+  main.RandomizeRequest:
+    properties:
+      options:
+        $ref: '#/definitions/main.RandomizeRequestOpts'
+      people:
+        items:
+          $ref: '#/definitions/main.PersonInput'
+        minItems: 1
+        type: array
+      team_count:
+        minimum: 1
+        type: integer
+    required:
+    - people
+    - team_count
+    type: object
+  main.RandomizeRequestOpts:
+    type: object
+  main.RandomizeResponse:
+    properties:
+      teams:
+        items:
+          $ref: '#/definitions/main.TeamGroup'
+        type: array
+      total:
+        type: integer
+    type: object
+  main.TeamGroup:
+    properties:
+      members:
+        items:
+          $ref: '#/definitions/database.People'
+        type: array
+      team:
+        type: integer
     type: object
   main.errorResponse:
     properties:
@@ -174,4 +231,86 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /v1/people/history:
+    get:
+      description: Returns saved randomizations for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.RandomizeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+      summary: Get saved team history
+      tags:
+      - people
+  /v1/people/randomize:
+    post:
+      consumes:
+      - application/json
+      description: Shuffles people, assigns teams, optionally saves for authenticated
+        users
+      parameters:
+      - description: Randomize request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.RandomizeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.RandomizeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+      summary: Randomly assign people into teams
+      tags:
+      - people
+  /v1/people/randomize/custom:
+    post:
+      consumes:
+      - application/json
+      description: Custom randomization of people into teams
+      parameters:
+      - description: Randomize request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/main.RandomizeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.RandomizeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.errorResponse'
+      summary: Custom randomize (TODO)
+      tags:
+      - people
 swagger: "2.0"

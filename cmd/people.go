@@ -38,6 +38,17 @@ type RandomizeResponse struct {
 	Total int         `json:"total"`
 }
 
+// createRandomize godoc
+// @Summary      Randomly assign people into teams
+// @Description  Shuffles people, assigns teams, optionally saves for authenticated users
+// @Tags         people
+// @Accept       json
+// @Produce      json
+// @Param        body  body      RandomizeRequest  true  "Randomize request"
+// @Success      200   {object}  RandomizeResponse
+// @Failure      400   {object}  errorResponse
+// @Failure      500   {object}  errorResponse
+// @Router       /v1/people/randomize [post]
 func (app *app) createRandomize(c *gin.Context) {
 
 	// Bind and validate input
@@ -124,6 +135,17 @@ func (app *app) createRandomize(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// createCustomRandomize godoc
+// @Summary      Custom randomize (TODO)
+// @Description  Custom randomization of people into teams
+// @Tags         people
+// @Accept       json
+// @Produce      json
+// @Param        body  body      RandomizeRequest  true  "Randomize request"
+// @Success      200   {object}  RandomizeResponse
+// @Failure      400   {object}  errorResponse
+// @Failure      500   {object}  errorResponse
+// @Router       /v1/people/randomize/custom [post]
 func (app *app) createCustomRandomize(c *gin.Context) {
 	var req RandomizeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -134,6 +156,15 @@ func (app *app) createCustomRandomize(c *gin.Context) {
 	}
 }
 
+// getHistory godoc
+// @Summary      Get saved team history
+// @Description  Returns saved randomizations for the authenticated user
+// @Tags         people
+// @Produce      json
+// @Success      200   {object}  RandomizeResponse
+// @Failure      401   {object}  errorResponse
+// @Failure      500   {object}  errorResponse
+// @Router       /v1/people/history [get]
 func (app *app) getHistory(c *gin.Context) {
 
 	// Check authentication
