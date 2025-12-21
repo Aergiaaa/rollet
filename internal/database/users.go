@@ -19,11 +19,11 @@ type UserModel struct {
 }
 
 type User struct {
-	Id       int    `json:"id"`
-	Email    string `json:"email"`
-	GoogleID string `json:"google_id,omitempty"`
-	Name     string `json:"name"`
-	Password string `json:"-"`
+	Id       int            `json:"id"`
+	Email    string         `json:"email"`
+	GoogleID sql.NullString `json:"google_id,omitempty"`
+	Name     string         `json:"name"`
+	Password string         `json:"-"`
 }
 
 var _ UserStore = (*UserModel)(nil)

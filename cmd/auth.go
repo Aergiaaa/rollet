@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -96,11 +97,13 @@ func (app *app) register(c *gin.Context) {
 		Email:    req.Email,
 		Name:     req.Name,
 		Password: string(hashPassword),
+		GoogleID: sql.NullString{},
 	}
 
 	// Insert user into database
 	err = app.models.Users.Insert(&user)
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, errorResponse{"failed to register user"})
 		return
 	}
@@ -243,7 +246,7 @@ func (app *app) googleAuth(c *gin.Context) {
 	if user == nil {
 		user = &database.User{
 			Email:    p.Email,
-			GoogleID: p.ID,
+			GoogleID: sql.NullString{String: p.ID, Valid: true},
 			Name:     p.Name,
 			Password: "",
 		}

@@ -52,3 +52,12 @@ func migrating(db *sql.DB) (*migrate.Migrate, error) {
 
 	return m, nil
 }
+
+func DBStatus(db *sql.DB) error {
+	if err := db.Ping(); err != nil {
+		log.Println("Database connection failed:", err)
+		return fmt.Errorf("database connection failed: %w", err)
+	}
+	log.Println("Database connection is healthy")
+	return nil
+}

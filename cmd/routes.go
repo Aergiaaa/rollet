@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "github.com/Aergiaaa/rollet/docs" // swagger docs
+	"github.com/Aergiaaa/rollet/internal/database"
+	"github.com/Aergiaaa/rollet/internal/env"
 )
 
 func (app *app) routes() http.Handler {
@@ -37,6 +40,16 @@ func (app *app) routes() http.Handler {
 			c.JSON(http.StatusOK, gin.H{
 				"status": "ok",
 			})
+		})
+
+		v1.GET("/health/db", func(c *gin.Context) {
+			db, err := sql.Open("postgres", env.GetEnvString("DATABASE_URL", ""))
+			err = database.DBStatus(db)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection failed"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
 	}
 
