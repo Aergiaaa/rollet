@@ -27,6 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("error opening database: %v", err)
 	}
+	defer db.Close()
 
 	url := env.GetEnvString("DATABASE_URL", "")
 	if url == "" {
