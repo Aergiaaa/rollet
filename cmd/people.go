@@ -3,6 +3,7 @@ package main
 import (
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Aergiaaa/rollet/internal/database"
@@ -33,10 +34,16 @@ type TeamGroup struct {
 	Members []*database.People `json:"members"`
 }
 
-type RandomizeResponse struct {
-	Teams []TeamGroup `json:"teams"`
-	Total int         `json:"total"`
+type TeamsResponse struct {
+	Id        int         `json:"id"`
+	Teams     []TeamGroup `json:"teams"`
+	Total     int         `json:"total"`
+	CreatedAt time.Time   `json:"created_at"`
 }
+
+type RandomizeResponse TeamsResponse
+
+type HistoryResponse []TeamsResponse
 
 // createRandomize godoc
 // @Summary      Randomly assign people into teams
@@ -178,30 +185,73 @@ func (app *app) getHistory(c *gin.Context) {
 
 	// Retrieve saved data
 	userObj := user.(*database.User)
-	people, err := app.models.People.GetAllbyUserId(userObj.Id)
+	history, err := app.models.People.GetAllbyUserId(userObj.Id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve data",
 		})
 		return
 	}
-
-	teamMap := make(map[int][]*database.People)
-	for _, person := range people {
-		teamMap[person.Team] = append(teamMap[person.Team], person)
+	if len(history) == 0 {
+		c.JSON(http.StatusOK, HistoryResponse{})
+		return
 	}
 
-	teams := make([]TeamGroup, 0, len(teamMap))
-	for teamNum, peopleInTeam := range teamMap {
-		teams = append(teams, TeamGroup{
-			Team:    teamNum,
-			Members: peopleInTeam,
+	records := make([]TeamsResponse, len(history))
+	for _, pd := range history {
+		teamMap := make(map[int][]*database.People)
+		for _, person := range pd.People {
+			teamMap[person.Team] = append(teamMap[person.Team], person)
+		}
+
+		teams := make([]TeamGroup, 0, len(teamMap))
+		for teamNum, peopleInTeam := range teamMap {
+			teams = append(teams, TeamGroup{
+				Team:    teamNum,
+				Members: peopleInTeam,
+			})
+		}
+
+		records = append(records, TeamsResponse{
+			Id:        pd.Id,
+			Teams:     teams,
+			Total:     len(pd.People),
+			CreatedAt: pd.CreatedAt,
 		})
 	}
 
-	res := RandomizeResponse{
-		Teams: teams,
-		Total: len(people),
-	}
+	res := HistoryResponse(records)
 	c.JSON(http.StatusOK, res)
+}
+
+func (app *app) removeHistory(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists || user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
+
+	dataId := c.Param("id")
+	dataIdInt, err := strconv.Atoi(dataId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid ID",
+		})
+		return
+	}
+
+	userObj := user.(*database.User)
+	err = app.models.People.DeleteByUserId(userObj.Id, dataIdInt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to delete history",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "History deleted successfully",
+	})
 }

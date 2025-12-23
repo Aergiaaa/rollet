@@ -58,6 +58,7 @@ func (app *app) routes() http.Handler {
 	{
 		authGroup.POST("/user/random/custom", app.createCustomRandomize)
 		authGroup.GET("/user/history", app.getHistory)
+		authGroup.DELETE("/user/history/:id", app.removeHistory)
 	}
 
 	{
