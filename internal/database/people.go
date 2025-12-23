@@ -139,7 +139,7 @@ func (pm *PeopleModel) Save(userId int, people []*People) error {
 	defer stmt.Close()
 
 	for _, p := range people {
-		err = stmt.QueryRowContext(ctx, p.Name, p.Role, p.Team, userId).
+		err = stmt.QueryRowContext(ctx, p.Name, p.Role, p.Team, userId, dataId).
 			Scan(&p.Id)
 		if err != nil {
 			return fmt.Errorf("failed to insert people: %w", err)

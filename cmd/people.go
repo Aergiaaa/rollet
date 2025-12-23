@@ -56,7 +56,7 @@ type HistoryResponse []TeamsResponse
 // @Success      200   {object}  RandomizeResponse
 // @Failure      400   {object}  errorResponse
 // @Failure      500   {object}  errorResponse
-// @Router       /v1/people/randomize [post]
+// @Router       /v1/random/default [post]
 func (app *app) createRandomize(c *gin.Context) {
 
 	// Bind and validate input
