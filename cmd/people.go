@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -187,6 +188,7 @@ func (app *app) getHistory(c *gin.Context) {
 	userObj := user.(*database.User)
 	history, err := app.models.People.GetAllbyUserId(userObj.Id)
 	if err != nil {
+		log.Println("Error retrieving history:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve data",
 		})

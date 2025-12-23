@@ -35,6 +35,9 @@ func main() {
 	}
 
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+
+		log.Printf("DATABASE_URL: %s\n", url)
+
 		db, err := sql.Open("postgres", url)
 		if err != nil {
 			log.Fatalf("Could not connect to database: %v", err)
