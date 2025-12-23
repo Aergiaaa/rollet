@@ -39,35 +39,63 @@ func (pm *PeopleModel) GetAllbyUserId(userId int) ([]PeopleData, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `SELECT id, created_at FROM people_data WHERE user_id = $1 ORDER BY created_at DESC`
+	query := `
+        SELECT pd.id, pd.created_at,
+               p.id, p.name, p.role, p.team
+        FROM people_data pd
+        LEFT JOIN people p ON p.people_data_id = pd.id
+        WHERE pd.user_id = $1
+        ORDER BY pd.created_at DESC, p.team, p.role, p.name`
 	rows, err := pm.DB.QueryContext(ctx, query, userId)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var peeps []PeopleData
+	dataMap := make(map[int]*PeopleData)
+	var order []int
 
 	for rows.Next() {
-		var pd PeopleData
+		var pdID int
+		var pdCreatedAt time.Time
+		var pid sql.NullInt32
+		var pname, prole sql.NullString
+		var pteam sql.NullInt32
 
-		err := rows.Scan(&pd.Id, &pd.CreatedAt)
+		err := rows.Scan(&pdID, &pdCreatedAt, &pid, &pname, &prole, &pteam)
 		if err != nil {
 			return nil, err
 		}
 
-		people, err := pm.getPeopleByDataID(ctx, pd.Id)
-
-		if err != nil {
-			return nil, err
+		pd, ok := dataMap[pdID]
+		if !ok {
+			pd = &PeopleData{
+				Id:        pdID,
+				CreatedAt: pdCreatedAt,
+			}
+			dataMap[pdID] = pd
+			order = append(order, pdID)
 		}
 
-		pd.People = people
-		peeps = append(peeps, pd)
+		if pid.Valid {
+			pd.People = append(pd.People, &People{
+				Id:           int(pid.Int32),
+				Name:         pname.String,
+				Role:         prole.String,
+				Team:         int(pteam.Int32),
+				PeopleDataID: pdID,
+			})
+		}
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
+	}
+
+	peeps := make([]PeopleData, 0, len(order))
+
+	for _, id := range order {
+		peeps = append(peeps, *dataMap[id])
 	}
 
 	return peeps, nil
@@ -77,26 +105,53 @@ func (pm *PeopleModel) GetByUserId(userId, peopleId int) (*PeopleData, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	var pd PeopleData
-
-	query := `SELECT id, created_at FROM people_data WHERE id = $1 AND user_id = $2`
-	err := pm.DB.QueryRowContext(ctx, query, peopleId, userId).
-		Scan(&pd.Id, &pd.CreatedAt)
+	query := `
+        SELECT pd.id, pd.created_at,
+               p.id, p.name, p.role, p.team
+        FROM people_data pd
+        LEFT JOIN people p ON p.people_data_id = pd.id
+        WHERE pd.user_id = $1 AND pd.id = $2
+        ORDER BY p.team, p.role, p.name`
+	rows, err := pm.DB.QueryContext(ctx, query, userId, peopleId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
+	defer rows.Close()
 
-	people, err := pm.getPeopleByDataID(ctx, pd.Id)
-	if err != nil {
-		return nil, err
+	var pd *PeopleData
+	for rows.Next() {
+		var pdID int
+		var pdCreated time.Time
+		var pid sql.NullInt32
+		var name, role sql.NullString
+		var team sql.NullInt32
+
+		if err := rows.Scan(&pdID, &pdCreated, &pid, &name, &role, &team); err != nil {
+			return nil, err
+		}
+
+		if pd == nil {
+			pd = &PeopleData{Id: pdID, CreatedAt: pdCreated}
+		}
+
+		if pid.Valid {
+			pd.People = append(pd.People, &People{
+				Id:           int(pid.Int32),
+				Name:         name.String,
+				Role:         role.String,
+				Team:         int(team.Int32),
+				PeopleDataID: pdID,
+			})
+		}
 	}
 
-	pd.People = people
-
-	return &pd, nil
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return pd, nil
 }
 
 func (pm *PeopleModel) DeleteByUserId(userId, peopleId int) error {

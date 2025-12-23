@@ -112,6 +112,7 @@ func (app *app) createRandomize(c *gin.Context) {
 		userObj := user.(*database.User)
 		err := app.models.People.Save(userObj.Id, allPeople)
 		if err != nil {
+			log.Printf("Failed to save people: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to save to database",
 			})
