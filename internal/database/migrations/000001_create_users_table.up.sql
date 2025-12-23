@@ -8,4 +8,8 @@ create table if not exists users (
   updated_at timestamp default current_timestamp
 );
 
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_google_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id_not_null
+  ON users (google_id) WHERE google_id IS NOT NULL;
+
 create index idx_users_google_id on users(google_id);
