@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -41,6 +42,7 @@ type loginRequest struct {
 type loginResponse struct {
 	Token  string `json:"token"`
 	UserID int    `json:"user_id"`
+	Name   string `json:"name"`
 }
 
 type googleAuthRequest struct {
@@ -138,6 +140,7 @@ func (app *app) login(c *gin.Context) {
 	// Retrieve user by name
 	existingUser, err := app.models.Users.GetByEmail(req.Email)
 	if err != nil {
+		log.Printf("error on get email: %+v", err)
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusUnauthorized, errorResponse{"Invalid Google ID or password"})
 			return
@@ -175,6 +178,7 @@ func (app *app) login(c *gin.Context) {
 	c.JSON(http.StatusOK, loginResponse{
 		Token:  tokenStr,
 		UserID: existingUser.Id,
+		Name:   existingUser.Name,
 	})
 }
 

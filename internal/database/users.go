@@ -58,7 +58,7 @@ func (um *UserModel) getUser(query string, args ...any) (*User, error) {
 
 	var u User
 	err := um.DB.QueryRowContext(ctx, query, args...).
-		Scan(&u.Id, &u.Email, &u.Name, &u.Password)
+		Scan(&u.Id, &u.Email, &u.GoogleID, &u.Name, &u.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
