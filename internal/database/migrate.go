@@ -44,7 +44,7 @@ func migrating(db *sql.DB) (*migrate.Migrate, error) {
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://internal/database/migrations",
+		"./internal/database/migrations",
 		"postgres", driver)
 	if err != nil {
 		return nil, fmt.Errorf("could not create migrate instance: %w", err)
