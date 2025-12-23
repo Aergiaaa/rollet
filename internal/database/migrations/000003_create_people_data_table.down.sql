@@ -1,1 +1,1 @@
-drop table if exist people_data;
+drop table if exists people_data;
