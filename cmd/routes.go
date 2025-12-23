@@ -56,6 +56,7 @@ func (app *app) routes() http.Handler {
 	authGroup := v1.Group("/")
 	authGroup.Use(app.AuthMiddleware())
 	{
+		authGroup.POST("/user/random/default", app.createRandomize)
 		authGroup.POST("/user/random/custom", app.createCustomRandomize)
 		authGroup.GET("/user/history", app.getHistory)
 		authGroup.DELETE("/user/history/:id", app.removeHistory)
