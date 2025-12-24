@@ -200,7 +200,7 @@ func (app *app) getHistory(c *gin.Context) {
 		return
 	}
 
-	records := make([]TeamsResponse, len(history))
+	records := make([]TeamsResponse, 0, len(history))
 	for _, pd := range history {
 		teamMap := make(map[int][]*database.People)
 		for _, person := range pd.People {
